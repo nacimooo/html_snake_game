@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <style>
+        body {
+            height: 100vh;
+            width: 100vh;
+/*            display: flex;*/
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            background-color: white;
+            overflow: hidden;
+        }
+
+        #game-board {
+            background-color: bisque;
+            width: 90%;
+            height: 90%;
+            display: grid;
+            grid-template-columns: repeat(21, 1fr);
+            grid-template-rows: repeat(21, 1fr);
+
+        }
+        
+        #score{
+            height: 10%;
+            width: 90%;
+            background-color: chartreuse;
+            font-size: 400%;
+            text-align: center;
+            font-family: monaco;
+            
+        }
+
+        .snake{
+            background-color:cadetblue;
+
+        }
+
+        .food{
+            background-color: brown;
+
+        }
+    </style>
+</head>
+<body>
+    <div id="score">
+    <br>
+        
+    </div>
+    <div id="game-board"></div>
+
+    <script>
+         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        
+        //                                          GAMEBOARD STUFF
+        
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        
+        const BOARD_SIZE = 22;
+        
+        let current_score = 0;
+        let in_game = true;
+        
+        // keeping track of the render time. Updated in the main function
+        let lasterRenderTime = 0;
+
+        // input direction
+        let inputDirection = {x : 0, y : 0}
+        
+        const gameBoard = document.getElementById("game-board");
+
+        // main funciton that basically updates and refreshes the render ever SNAKE_SPEED second.
+        function main(currentTime){
+            // request next animation access to render the next frame of the game
+            window.requestAnimationFrame(main);
+            
+            // convert the snake speed to seconds
+            const secondsSinceLasterRender = (currentTime - lasterRenderTime) / 700;
+
+            // exit every time the time does not match
+            if (secondsSinceLasterRender < 1 / SNAKE_SPEED){
+                return;
+            }
+            
+            // log print to test
+            console.log('works');
+
+            // update the render time
+            lasterRenderTime = currentTime;
+
+            draw_snake(gameBoard);
+            draw_food(gameBoard);
+            update_snake();
+            upadate_food();
+            update_score();
+        
+        }
+
+        function getInputDirection(){
+
+            window.addEventListener('keydown', e => {
+                if (e.key == "ArrowUp" && inputDirection.y != +1){ inputDirection.y = -1; inputDirection.x = 0; hasmoved = 1;}
+                if (e.key == "ArrowDown" && inputDirection.y != -1){ inputDirection.y = +1; inputDirection.x = 0; hasmoved = 1;}
+                if (e.key == "ArrowLeft" && inputDirection.x != +1){ inputDirection.y = 0; inputDirection.x = -1; hasmoved = 1;}
+                if (e.key == "ArrowRight" && inputDirection.x != -1){ inputDirection.y = 0; inputDirection.x = +1; hasmoved = 1;}
+
+            })
+
+            return inputDirection;
+        }
+        
+        function update_score(){
+            if (in_game){ document.getElementById("score").innerHTML = current_score; }
+            else { document.getElementById("score").innerHTML = "Game OVER!"; }
+            
+        }
+        
+        
+
+        window.requestAnimationFrame(main);
+        
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        
+        //                                          SNAKE STUFF
+        
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        
+
+        let hasmoved = 0;
+        
+        const SNAKE_SPEED = 3;
+        
+        // How fast the snake grows
+        const EXPANTION_RATE = 1; 
+
+        // Number of additiona; segments;
+        let newSegments = 0;
+        
+        // starting snake of size 1.
+        const snake_body = [
+            { x: 11, y:11 }
+        ];  
+
+        
+        
+        // function that parses though every array item in the snake size array
+        // and converts it into an html complient format for rendering
+        function draw_snake(gameBoard){
+            gameBoard.innerHTML = '';
+            snake_body.forEach(segment => {
+                const snake_element = document.createElement("div");
+                snake_element.style.gridRowStart = segment.y;
+                snake_element.style.gridColumnStart = segment.x;
+                snake_element.classList.add("snake");
+                gameBoard.appendChild(snake_element);
+
+            })
+        }
+
+        function update_snake(){
+            if (hasmoved == 1){
+                for (let i = snake_body.length - 2; i >= 0; i--){
+                snake_body[i+1] = { ...snake_body[i] };
+                }
+            }
+
+            if (snake_body[0].x > BOARD_SIZE || snake_body[0].x < 0 || snake_body[0].y > BOARD_SIZE || snake_body[0].y < 0){
+                    snake_body = null;
+                    in_game = false;
+                
+                }
+            else{
+                snake_body[0].x += getInputDirection().x;
+                snake_body[0].y += getInputDirection().y;
+            }
+        }
+        
+        function expand_snake(amount){
+            newSegments += amount;
+            snake_body.push(food);
+        }
+        
+        function onSnake(position){
+            return snake_body.some(segment => {
+                return snake_body[0].x == food.x && snake_body[0].y == food.y;
+            })
+            
+        }
+        
+        
+        
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        
+        //                                          FOOD STUFF
+        
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        
+        // PROPERTIES OF THE FOOD OBJECT
+        let food = {x:5, y:2}
+        
+        function getRand(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min) + min);
+        }
+        
+        function upadate_food(){
+            if (onSnake(food)){
+                expand_snake(EXPANTION_RATE);
+                food = {x: getRand(1, BOARD_SIZE) , y: getRand(1, BOARD_SIZE)};
+                current_score++;
+//                
+            }
+        }
+        
+        function draw_food(gameboard){
+            const food_element = document.createElement("div");
+            food_element.style.gridRowStart = food.y;
+            food_element.style.gridColumnStart = food.x;
+            food_element.classList.add("food");
+            gameBoard.appendChild(food_element);
+        }
+        
+       
+    </script>
+
+
+    
+    
+</body>
+</html>
